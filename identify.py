@@ -123,24 +123,29 @@ images_same_class = []
 for entry in os.scandir(class_dir):
     if f"s{prediction + 1}/{entry.name}" == image:
         continue
-    img = cv.imread(entry, cv.IMREAD_GRAYSCALE)
+    img = cv.imread(entry.path, cv.IMREAD_GRAYSCALE)
     img = cv.resize(img, (112, 92), interpolation=cv.INTER_AREA)
     images_same_class.append(img)
 
-plt.figure(figsize=(10, 6))
-plt.title("Imagem de Teste x Classe Prevista")
-plt.subplot(2, 5, 1)
+plt.figure(figsize=(4, 4))
 plt.imshow(test_image_original, cmap='gray')
-plt.title(f"Imagem de Teste: {image.split('.')[0]}")
+plt.title(f"Imagem de Teste\nClasse Prevista: s{prediction + 1}")
 plt.axis('off')
-
-for i in range(min(9, len(images_same_class))):
-    plt.subplot(2, 5, i + 2)
-    plt.imshow(images_same_class[i], cmap='gray')
-    plt.title(f"s{prediction + 1}")
-    plt.axis('off')
-
 plt.tight_layout()
+
 image_label = image.split("/")
 image_label = f"{image_label[0]}_{image_label[1]}"
-plt.savefig(f"figures/{image_label}_prediction.png")
+plt.savefig(f"figures/{image_label}_test.png")
+plt.close()
+
+plt.figure(figsize=(10, 6))
+plt.suptitle(f"Imagens da Classe Prevista: s{prediction + 1}", fontsize=14)
+
+for i in range(min(9, len(images_same_class))):
+    plt.subplot(3, 3, i + 1)
+    plt.imshow(images_same_class[i], cmap='gray')
+    plt.axis('off')
+
+plt.tight_layout(rect=[0, 0, 1, 0.95])
+plt.savefig(f"figures/{image_label}_predicted_class.png")
+plt.close()
