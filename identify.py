@@ -7,14 +7,16 @@ import seaborn as sns
 from sklearn.decomposition import PCA
 from sklearn.model_selection import StratifiedKFold, cross_val_predict
 from sklearn.svm import SVC
-from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay, classification_report, accuracy_score
 from sklearn.pipeline import Pipeline
 from sklearn.manifold import TSNE
 from sklearn.preprocessing import StandardScaler
 
+# Constantes para o diretório do dataset e tamanho das figuras para visualização
 DIR_PATH = "orl_faces/s"
 FIGURE_SIZE = (10,10)
 
+# Adicionamos um parser de argumentos para que o usuário possa fornecer imagens dinamicamente 
 parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--image", help="Insira o caminho da imagem em orl_faces Ex.: s2/6.pgm")
 args = parser.parse_args()
@@ -44,6 +46,7 @@ for i in range(1, 41):
         img = cv.resize(img, (112, 92), interpolation=cv.INTER_AREA)
         img_flat = img.ravel()
 
+        # Também salvamos a imagem de teste em uma variável separada
         if f"s{i}/{entry.name}" == image:
             test_image = img_flat
             test_image_original = img
@@ -59,12 +62,15 @@ for i in range(1, 41):
 X = np.array(X, dtype=np.uint8)
 y = np.array(y, dtype=np.uint8)
 
+# Calculamos o z-score para normalizar os valores de cada pixel da imagem para usarmos no tsne
 scaler = StandardScaler()
 X_scaled = scaler.fit_transform(X)
 
+# Aplicamos o PCA
 pca = PCA(50)
 X_pca_tsne = pca.fit_transform(X_scaled)
 
+# Criação do tsne e da projeção dos vetores
 tsne = TSNE(n_components=2)
 projection = tsne.fit_transform(X_pca_tsne)
 
@@ -74,6 +80,7 @@ plt.title("t-SNE")
 plt.savefig("figures/tsne")
 
 
+# Utilizamos um pipeline para o Cross Validation para que o z-score e pca seja aplicado em cada subconjunto de teste
 kfold = StratifiedKFold(5, shuffle=True, random_state=42)
 
 pipeline = Pipeline([
@@ -82,7 +89,14 @@ pipeline = Pipeline([
     ("svm", SVC(kernel="rbf", random_state=42))
 ])
 
+# Mostramos os resultados do cv
 validator = cross_val_predict(pipeline, X, y, cv=kfold, n_jobs=-1, verbose=True)
+acc = accuracy_score(y, validator)
+class_report = classification_report(y, validator)
+print(f"Acurácia: {acc * 100:.2f}%")
+print(f"Relatório de classificação: {class_report}")
+
+# Plotamos a matriz de confusão
 cf_matrix = confusion_matrix(y, validator)
 
 plt.figure(figsize=FIGURE_SIZE)
@@ -111,12 +125,15 @@ proba = svm2.predict_proba(test_image)
 
 sort_indices = np.argsort(proba[0])[::-1]
 sort_proba = proba[0][sort_indices]
+
+# Mostramos a classe prevista e as probabilidades 
 print(f"Predição: {prediction + 1}")
 
 for i in range(5):
     print(f"Prob classe {sort_indices[i] + 1}: {sort_proba[i] * 100:.2f}%")
 
 
+# Criamos as figuras de saída para mostrar a classe prevista e as imagens da classe prevista (mais a imagem de teste em outra figura)
 class_dir = os.path.join(DIR_PATH + str(prediction + 1))
 
 images_same_class = []
